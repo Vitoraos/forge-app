@@ -1,0 +1,329 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useParams, useRouter } from 'next/navigation'
+import { useSessionPolling } from '@/lib/hooks/useSessionPolling'
+import StreamingOutput from '@/components/session/StreamingOutput'
+import PlanReview from '@/components/session/PlanReview'
+import SubtaskRail from '@/components/session/SubtaskRail'
+import StatusDot from '@/components/ui/StatusDot'
+import ModelSelector from '@/components/app/ModelSelector'
+
+// ─── DRAG HANDLE ──────────────────────────────────────────────────
+function DragHandle({ onDrag }) {
+  function handleMouseDown(e) {
+    e.preventDefault()
+    const startY = e.clientY
+    const startTouch = e.touches?.[0]?.clientY ?? startY
+
+    function onMove(e) {
+      const currentY = e.touches?.[0]?.clientY ?? e.clientY
+      onDrag(currentY - startTouch)
+    }
+
+    function onUp() {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+      window.removeEventListener('touchmove', onMove)
+      window.removeEventListener('touchend', onUp)
+    }
+
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+    window.addEventListener('touchmove', onMove)
+    window.addEventListener('touchend', onUp)
+  }
+
+  return (
+    <div
+      onMouseDown={handleMouseDown}
+      onTouchStart={handleMouseDown}
+      className="h-1 bg-border hover:bg-accent/40 active:bg-accent transition-colors duration-150 cursor-row-resize shrink-0 relative group"
+    >
+      <div className="absolute inset-x-0 -top-2 -bottom-2" />
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-0.5 bg-border group-hover:bg-accent/60 rounded-full transition-colors duration-150" />
+    </div>
+  )
+}
+
+// ─── STATUS BAR ───────────────────────────────────────────────────
+function SessionHeader({ session, plannerModel, coderModel, onPlannerChange, onCoderChange, showModels, onToggleModels }) {
+  return (
+    <div className="px-4 py-3 border-b border-border flex items-center justify-between gap-3 shrink-0 bg-surface/50">
+      <div className="flex items-center gap-3 min-w-0">
+        <StatusDot status={session.status} />
+        <p className="text-xs text-secondary truncate font-medium">
+          {session.task}
+        </p>
+      </div>
+      <button
+        onClick={onToggleModels}
+        className="text-xs text-muted hover:text-accent transition-colors duration-150 shrink-0 font-mono"
+      >
+        models
+      </button>
+
+      {/* Model switcher dropdown */}
+      {showModels && (
+        <div className="absolute top-14 right-4 z-50 w-72 bg-surface border border-border rounded shadow-glow p-4">
+          <ModelSelector
+            plannerModel={plannerModel}
+            coderModel={coderModel}
+            onPlannerChange={onPlannerChange}
+            onCoderChange={onCoderChange}
+          />
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── PLANNING STATE ───────────────────────────────────────────────
+function PlanningState() {
+  const lines = [
+    'Analysing repository structure…',
+    'Loading codebase memory…',
+    'Identifying affected files…',
+    'Assessing risk and dependencies…',
+    'Generating subtasks…',
+  ]
+  const [visibleLines, setVisibleLines] = useState(0)
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setVisibleLines(prev => {
+        if (prev >= lines.length) {
+          clearInterval(interval)
+          return prev
+        }
+        return prev + 1
+      })
+    }, 1200)
+    return () => clearInterval(interval)
+  }, [])
+
+  return (
+    <div className="flex-1 flex flex-col justify-center px-6 py-8 gap-3">
+      {lines.slice(0, visibleLines).map((line, i) => (
+        <div
+          key={i}
+          className="flex items-center gap-3 animate-fade-in"
+        >
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="shrink-0">
+            <path d="M2 6L5 9L10 3" stroke="#2563EB" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <span className="text-sm font-mono text-muted">{line}</span>
+        </div>
+      ))}
+      {visibleLines <= lines.length && (
+        <div className="flex items-center gap-3">
+          <span className="w-3 h-3 border border-accent border-t-transparent rounded-full animate-spin shrink-0" />
+          <span className="text-sm font-mono text-accent">
+            {lines[visibleLines] || 'Finalising plan…'}
+          </span>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── CODING STATE ─────────────────────────────────────────────────
+function CodingState({ tasks }) {
+  const runningTask = tasks?.find(t => t.status === 'running')
+  const doneCount = tasks?.filter(t => t.status === 'done' || t.status === 'awaiting_approval').length || 0
+  const total = tasks?.length || 0
+
+  return (
+    <div className="flex-1 flex flex-col justify-center px-6 py-8 gap-6">
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-mono text-muted uppercase tracking-wider">
+            Progress
+          </span>
+          <span className="text-xs font-mono text-muted">
+            {doneCount}/{total}
+          </span>
+        </div>
+        <div className="h-px bg-border rounded-full overflow-hidden">
+          <div
+            className="h-full bg-accent transition-all duration-500 rounded-full"
+            style={{ width: total ? `${(doneCount / total) * 100}%` : '0%' }}
+          />
+        </div>
+      </div>
+
+      {runningTask && (
+        <div className="flex flex-col gap-2 p-3 bg-surface border border-accent/20 rounded">
+          <div className="flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+            <span className="text-xs font-mono text-accent">Coding</span>
+          </div>
+          <span className="text-xs font-mono text-secondary">
+            {runningTask.file_path}
+          </span>
+          <p className="text-xs text-muted leading-relaxed line-clamp-3">
+            {runningTask.instruction}
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── FAILED STATE ─────────────────────────────────────────────────
+function FailedState({ session }) {
+  const router = useRouter()
+
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center px-6 py-8 gap-4 text-center">
+      <div className="w-10 h-10 rounded-full border border-danger/30 bg-danger/10 flex items-center justify-center">
+        <span className="text-danger text-lg">✕</span>
+      </div>
+      <div className="flex flex-col gap-1">
+        <p className="text-sm font-medium text-secondary">Session failed</p>
+        <p className="text-xs text-muted">
+          The agent encountered an error. Check your OpenRouter key and try again.
+        </p>
+      </div>
+      <button
+        onClick={() => router.push('/app')}
+        className="text-xs text-accent hover:underline"
+      >
+        Start new task
+      </button>
+    </div>
+  )
+}
+
+// ─── MAIN PAGE ────────────────────────────────────────────────────
+export default function SessionPage() {
+  const { id } = useParams()
+  const { session, loading, error, refetch } = useSessionPolling(id)
+
+  const [splitPercent, setSplitPercent] = useState(60)
+  const [activeTask, setActiveTask] = useState(null)
+  const [plannerModel, setPlannerModel] = useState('anthropic/claude-3.5-sonnet')
+  const [coderModel, setCoderModel] = useState('poolside/laguna-m.1:free')
+  const [showModels, setShowModels] = useState(false)
+
+  // Auto select first ready task
+  useEffect(() => {
+    if (!session?.tasks) return
+    const firstReady = session.tasks.find(t => t.status === 'awaiting_approval')
+    if (firstReady && !activeTask) {
+      setActiveTask(firstReady)
+    }
+  }, [session?.tasks])
+
+  function handleDrag(deltaY) {
+    setSplitPercent(prev => {
+      const newVal = prev + (deltaY / window.innerHeight) * 100
+      return Math.min(80, Math.max(20, newVal))
+    })
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-base flex items-center justify-center">
+        <div className="flex items-center gap-2 text-muted">
+          <span className="w-4 h-4 border border-muted border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm font-mono">Loading session…</span>
+        </div>
+      </div>
+    )
+  }
+
+  if (error || !session) {
+    return (
+      <div className="min-h-screen bg-base flex items-center justify-center">
+        <p className="text-sm text-danger font-mono">
+          {error || 'Session not found'}
+        </p>
+      </div>
+    )
+  }
+
+  const isPlanReview = session.status === 'plan_review'
+  const isPlanning = session.status === 'planning'
+  const isCoding = session.status === 'coding'
+  const isAwaitingApproval = session.status === 'awaiting_approval'
+  const isDone = session.status === 'done'
+  const isFailed = session.status === 'failed'
+
+  const tasks = session.tasks || []
+
+  return (
+    <div
+      className="flex flex-col bg-base relative"
+      style={{ height: '100dvh' }}
+      onClick={() => showModels && setShowModels(false)}
+    >
+      {/* Session header */}
+      <SessionHeader
+        session={session}
+        plannerModel={plannerModel}
+        coderModel={coderModel}
+        onPlannerChange={setPlannerModel}
+        onCoderChange={setCoderModel}
+        showModels={showModels}
+        onToggleModels={() => setShowModels(p => !p)}
+      />
+
+      {/* Plan review — full screen when in plan_review */}
+      {isPlanReview && (
+        <PlanReview
+          session={session}
+          onApproved={() => refetch()}
+        />
+      )}
+
+      {/* Split panel — shown during coding and approval */}
+      {(isPlanning || isCoding || isAwaitingApproval || isDone || isFailed) && (
+        <div className="flex-1 flex flex-col min-h-0">
+          {/* Top panel — output */}
+          <div
+            className="overflow-hidden"
+            style={{ height: `${splitPercent}%` }}
+          >
+            {isPlanning && <PlanningState />}
+
+            {isCoding && <CodingState tasks={tasks} />}
+
+            {(isAwaitingApproval || isDone) && activeTask ? (
+              <StreamingOutput
+                title={activeTask.file_path || 'output'}
+                text={activeTask.code_drafts?.[0]?.new_content || ''}
+                done={true}
+                language="typescript"
+              />
+            ) : (isAwaitingApproval || isDone) && !activeTask ? (
+              <div className="flex-1 flex items-center justify-center text-muted">
+                <p className="text-xs font-mono">Select a subtask to review</p>
+              </div>
+            ) : null}
+
+            {isFailed && <FailedState session={session} />}
+          </div>
+
+          {/* Drag handle */}
+          <DragHandle onDrag={handleDrag} />
+
+          {/* Bottom panel — subtask rail */}
+          <div
+            className="overflow-hidden border-t border-border"
+            style={{ height: `${100 - splitPercent}%` }}
+          >
+            <SubtaskRail
+              tasks={tasks.map(t => ({
+                ...t,
+                code_drafts: session.code_drafts?.filter(d => d.task_id === t.id) || []
+              }))}
+              activeDraftId={activeTask?.code_drafts?.[0]?.id}
+              onSelectTask={setActiveTask}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
