@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useSessionPolling } from '@/lib/hooks/useSessionPolling'
 import StreamingOutput from '@/components/session/StreamingOutput'
@@ -78,60 +78,30 @@ function SessionHeader({ session, plannerModel, coderModel, onPlannerChange, onC
   )
 }
 
-// ─── PLANNING STATE ───────────────────────────────────────────────
-function PlanningState() {
-  const lines = [
-    'Analysing repository structure…',
-    'Loading codebase memory…',
-    'Identifying affected files…',
-    'Assessing risk and dependencies…',
-    'Generating subtasks…',
-  ]
-  const [visibleLines, setVisibleLines] = useState(0)
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setVisibleLines(prev => {
-        if (prev >= lines.length) {
-          clearInterval(interval)
-          return prev
-        }
-        return prev + 1
-      })
-    }, 1200)
-    return () => clearInterval(interval)
-  }, [])
-
+// ─── FALLBACK STATES (when no stream active) ──────────────────────
+function PlanningFallback() {
   return (
-    <div className="flex-1 flex flex-col justify-center px-6 py-8 gap-3">
-      {lines.slice(0, visibleLines).map((line, i) => (
-        <div
-          key={i}
-          className="flex items-center gap-3 animate-fade-in"
-        >
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="shrink-0">
-            <path d="M2 6L5 9L10 3" stroke="#2563EB" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          <span className="text-sm font-mono text-muted">{line}</span>
-        </div>
-      ))}
-      {visibleLines <= lines.length && (
-        <div className="flex items-center gap-3">
-          <span className="w-3 h-3 border border-accent border-t-transparent rounded-full animate-spin shrink-0" />
-          <span className="text-sm font-mono text-accent">
-            {lines[visibleLines] || 'Finalising plan…'}
-          </span>
-        </div>
-      )}
+    <div className="flex-1 flex items-center justify-center">
+      <div className="flex items-center gap-2 text-muted">
+        <span className="w-4 h-4 border border-muted border-t-transparent rounded-full animate-spin" />
+        <span className="text-sm font-mono">Planning…</span>
+      </div>
     </div>
   )
 }
 
-// ─── CODING STATE ─────────────────────────────────────────────────
-function CodingState({ tasks }) {
+function CodingFallback({ tasks }) {
   const runningTask = tasks?.find(t => t.status === 'running')
   const doneCount = tasks?.filter(t => t.status === 'done' || t.status === 'awaiting_approval').length || 0
   const total = tasks?.length || 0
+
+  if (!runningTask) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <p className="text-sm text-muted font-mono">No active coding task</p>
+      </div>
+    )
+  }
 
   return (
     <div className="flex-1 flex flex-col justify-center px-6 py-8 gap-6">
@@ -152,28 +122,24 @@ function CodingState({ tasks }) {
         </div>
       </div>
 
-      {runningTask && (
-        <div className="flex flex-col gap-2 p-3 bg-surface border border-accent/20 rounded">
-          <div className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
-            <span className="text-xs font-mono text-accent">Coding</span>
-          </div>
-          <span className="text-xs font-mono text-secondary">
-            {runningTask.file_path}
-          </span>
-          <p className="text-xs text-muted leading-relaxed line-clamp-3">
-            {runningTask.instruction}
-          </p>
+      <div className="flex flex-col gap-2 p-3 bg-surface border border-accent/20 rounded">
+        <div className="flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+          <span className="text-xs font-mono text-accent">Coding</span>
         </div>
-      )}
+        <span className="text-xs font-mono text-secondary">
+          {runningTask.file_path}
+        </span>
+        <p className="text-xs text-muted leading-relaxed line-clamp-3">
+          {runningTask.instruction}
+        </p>
+      </div>
     </div>
   )
 }
 
-// ─── FAILED STATE ─────────────────────────────────────────────────
 function FailedState({ session }) {
   const router = useRouter()
-
   return (
     <div className="flex-1 flex flex-col items-center justify-center px-6 py-8 gap-4 text-center">
       <div className="w-10 h-10 rounded-full border border-danger/30 bg-danger/10 flex items-center justify-center">
@@ -206,14 +172,48 @@ export default function SessionPage() {
   const [coderModel, setCoderModel] = useState('poolside/laguna-m.1:free')
   const [showModels, setShowModels] = useState(false)
 
-  // Auto select first ready task
+  // Streaming state
+  const [planStreamUrl, setPlanStreamUrl] = useState(null)
+  const [planStreamStarted, setPlanStreamStarted] = useState(false)
+  const [codeStreamUrl, setCodeStreamUrl] = useState(null)
+  const [streamingTaskId, setStreamingTaskId] = useState(null)
+
+  // Auto select first ready task (awaiting_approval)
   useEffect(() => {
     if (!session?.tasks) return
     const firstReady = session.tasks.find(t => t.status === 'awaiting_approval')
     if (firstReady && !activeTask) {
       setActiveTask(firstReady)
     }
-  }, [session?.tasks])
+  }, [session?.tasks, activeTask])
+
+  // 1. Planning stream: when session status becomes 'planning'
+  useEffect(() => {
+    if (session?.status === 'planning' && !planStreamStarted) {
+      setPlanStreamStarted(true)
+      setPlanStreamUrl(`/agent/session/${id}/stream-plan`)
+    }
+    // Reset when leaving planning phase
+    if (session?.status !== 'planning') {
+      setPlanStreamStarted(false)
+      setPlanStreamUrl(null)
+    }
+  }, [session?.status, id, planStreamStarted])
+
+  // 2. Coding stream: when a task enters 'running' state
+  useEffect(() => {
+    if (!session?.tasks) return
+    const runningTask = session.tasks.find(t => t.status === 'running')
+    if (runningTask && runningTask.id !== streamingTaskId) {
+      setStreamingTaskId(runningTask.id)
+      setCodeStreamUrl(`/agent/task/${runningTask.id}/stream-code`)
+    }
+    // If no running task, clear the stream URL
+    if (!runningTask && codeStreamUrl) {
+      setCodeStreamUrl(null)
+      setStreamingTaskId(null)
+    }
+  }, [session?.tasks, streamingTaskId, codeStreamUrl])
 
   function handleDrag(deltaY) {
     setSplitPercent(prev => {
@@ -258,7 +258,6 @@ export default function SessionPage() {
       style={{ height: '100dvh' }}
       onClick={() => showModels && setShowModels(false)}
     >
-      {/* Session header */}
       <SessionHeader
         session={session}
         plannerModel={plannerModel}
@@ -277,51 +276,79 @@ export default function SessionPage() {
         />
       )}
 
-      {/* Split panel — shown during coding and approval */}
+      {/* Split panel — shown during all non‑plan_review states */}
       {(isPlanning || isCoding || isAwaitingApproval || isDone || isFailed) && (
         <div className="flex-1 flex flex-col min-h-0">
-          {/* Top panel — output */}
+          {/* Top panel — streaming output (plan or code) or static code draft */}
           <div
             className="overflow-hidden"
             style={{ height: `${splitPercent}%` }}
           >
-            {isPlanning && <PlanningState />}
+            {/* Planning phase: stream the plan text */}
+            {isPlanning && (
+              planStreamUrl ? (
+                <StreamingOutput
+                  streamUrl={planStreamUrl}
+                  title="Execution Plan"
+                  language="markdown"
+                />
+              ) : (
+                <PlanningFallback />
+              )
+            )}
 
-            {isCoding && <CodingState tasks={tasks} />}
+            {/* Coding phase: stream the active task's code */}
+            {isCoding && (
+              codeStreamUrl ? (
+                <StreamingOutput
+                  streamUrl={codeStreamUrl}
+                  title="Generating code..."
+                  language="typescript"
+                />
+              ) : (
+                <CodingFallback tasks={tasks} />
+              )
+            )}
 
-            {(isAwaitingApproval || isDone) && activeTask ? (
+            {/* Awaiting approval or done: show static code draft of selected task */}
+            {(isAwaitingApproval || isDone) && activeTask && (
               <StreamingOutput
                 title={activeTask.file_path || 'output'}
                 text={activeTask.code_drafts?.[0]?.new_content || ''}
                 done={true}
                 language="typescript"
               />
-            ) : (isAwaitingApproval || isDone) && !activeTask ? (
+            )}
+            {(isAwaitingApproval || isDone) && !activeTask && (
               <div className="flex-1 flex items-center justify-center text-muted">
                 <p className="text-xs font-mono">Select a subtask to review</p>
               </div>
-            ) : null}
+            )}
 
             {isFailed && <FailedState session={session} />}
           </div>
 
-          {/* Drag handle */}
-          <DragHandle onDrag={handleDrag} />
+          {/* Drag handle (only when bottom panel is present) */}
+          {(isCoding || isAwaitingApproval || isDone || isFailed) && (
+            <DragHandle onDrag={handleDrag} />
+          )}
 
-          {/* Bottom panel — subtask rail */}
-          <div
-            className="overflow-hidden border-t border-border"
-            style={{ height: `${100 - splitPercent}%` }}
-          >
-            <SubtaskRail
-              tasks={tasks.map(t => ({
-                ...t,
-                code_drafts: session.code_drafts?.filter(d => d.task_id === t.id) || []
-              }))}
-              activeDraftId={activeTask?.code_drafts?.[0]?.id}
-              onSelectTask={setActiveTask}
-            />
-          </div>
+          {/* Bottom panel — subtask rail (only for coding & approval states) */}
+          {(isCoding || isAwaitingApproval || isDone) && (
+            <div
+              className="overflow-hidden border-t border-border"
+              style={{ height: `${100 - splitPercent}%` }}
+            >
+              <SubtaskRail
+                tasks={tasks.map(t => ({
+                  ...t,
+                  code_drafts: session.code_drafts?.filter(d => d.task_id === t.id) || []
+                }))}
+                activeDraftId={activeTask?.code_drafts?.[0]?.id}
+                onSelectTask={setActiveTask}
+              />
+            </div>
+          )}
         </div>
       )}
     </div>
