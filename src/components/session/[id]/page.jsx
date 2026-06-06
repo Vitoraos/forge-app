@@ -8,6 +8,7 @@ import PlanReview from '@/components/session/PlanReview'
 import SubtaskRail from '@/components/session/SubtaskRail'
 import StatusDot from '@/components/ui/StatusDot'
 import ModelSelector from '@/components/app/ModelSelector'
+import CodeReview from '@/components/session/CodeReview'
 
 // ─── DRAG HANDLE ──────────────────────────────────────────────────
 function DragHandle({ onDrag }) {
