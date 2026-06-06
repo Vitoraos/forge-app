@@ -188,11 +188,13 @@ export default function SessionPage() {
   }, [session?.tasks, activeTask])
 
   // 1. Planning stream: when session status becomes 'planning'
-  useEffect(() => {
-    if (session?.status === 'planning' && !planStreamStarted) {
-      setPlanStreamStarted(true)
-      setPlanStreamUrl(`/agent/session/${id}/stream-plan`)
-    }
+  // When session status is 'planning', immediately start streaming the plan
+useEffect(() => {
+  if (session?.status === 'planning' && !planStreamStarted) {
+    setPlanStreamStarted(true)
+    setPlanStreamUrl(`/agent/session/${id}/stream-plan`)
+  }
+}, [session?.status])
     // Reset when leaving planning phase
     if (session?.status !== 'planning') {
       setPlanStreamStarted(false)
@@ -202,12 +204,13 @@ export default function SessionPage() {
 
   // 2. Coding stream: when a task enters 'running' state
   useEffect(() => {
-    if (!session?.tasks) return
-    const runningTask = session.tasks.find(t => t.status === 'running')
-    if (runningTask && runningTask.id !== streamingTaskId) {
-      setStreamingTaskId(runningTask.id)
-      setCodeStreamUrl(`/agent/task/${runningTask.id}/stream-code`)
-    }
+  if (!session?.tasks) return
+  const runningTask = session.tasks.find(t => t.status === 'running')
+  if (runningTask && runningTask.id !== streamingTaskId) {
+    setStreamingTaskId(runningTask.id)
+    setCodeStreamUrl(`/agent/task/${runningTask.id}/stream-code`)
+  }
+}, [session?.tasks])
     // If no running task, clear the stream URL
     if (!runningTask && codeStreamUrl) {
       setCodeStreamUrl(null)
