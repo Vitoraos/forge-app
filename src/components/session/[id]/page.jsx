@@ -314,19 +314,38 @@ useEffect(() => {
             )}
 
             {/* Awaiting approval or done: show static code draft of selected task */}
-            {(isAwaitingApproval || isDone) && activeTask && (
-              <StreamingOutput
-                title={activeTask.file_path || 'output'}
-                text={activeTask.code_drafts?.[0]?.new_content || ''}
-                done={true}
-                language="typescript"
-              />
-            )}
-            {(isAwaitingApproval || isDone) && !activeTask && (
-              <div className="flex-1 flex items-center justify-center text-muted">
-                <p className="text-xs font-mono">Select a subtask to review</p>
-              </div>
-            )}
+            {(isAwaitingApproval || isDone) && activeTask ? (
+  <CodeReview
+    task={activeTask}
+    draft={
+      session.code_drafts?.find(
+        d => d.task_id === activeTask.id &&
+        d.verdict === 'awaiting_approval'
+      ) ||
+      session.code_drafts?.find(
+        d => d.task_id === activeTask.id
+      )
+    }
+    onApproved={() => refetch()}
+    onFeedbackSent={() => {
+      setActiveTask(null)
+      refetch()
+    }}
+  />
+) : (isAwaitingApproval || isDone) && !activeTask ? (
+  <div className="flex-1 flex items-center justify-center px-6">
+    <div className="flex flex-col items-center gap-3 text-center">
+      <div className="w-8 h-8 rounded-full border border-accent/20 bg-accent/5 flex items-center justify-center">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M7 1V13M1 7H13" stroke="#2563EB" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+      </div>
+      <p className="text-xs font-mono text-muted">
+        Select a subtask from below to review
+      </p>
+    </div>
+  </div>
+) : null}
 
             {isFailed && <FailedState session={session} />}
           </div>
