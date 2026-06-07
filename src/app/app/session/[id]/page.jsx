@@ -188,36 +188,31 @@ export default function SessionPage() {
     }
   }, [session?.tasks, activeTask])
 
-  // 1. Planning stream: when session status becomes 'planning'
-  // When session status is 'planning', immediately start streaming the plan
+ // 1. Planning stream
 useEffect(() => {
   if (session?.status === 'planning' && !planStreamStarted) {
     setPlanStreamStarted(true)
     setPlanStreamUrl(`/agent/session/${id}/stream-plan`)
   }
-}, [session?.status])
-    // Reset when leaving planning phase
-    if (session?.status !== 'planning') {
-      setPlanStreamStarted(false)
-      setPlanStreamUrl(null)
-    }
-  }, [session?.status, id, planStreamStarted])
+  if (session?.status !== 'planning') {
+    setPlanStreamStarted(false)
+    setPlanStreamUrl(null)
+  }
+}, [session?.status, id, planStreamStarted])
 
-  // 2. Coding stream: when a task enters 'running' state
-  useEffect(() => {
+// 2. Coding stream
+useEffect(() => {
   if (!session?.tasks) return
   const runningTask = session.tasks.find(t => t.status === 'running')
   if (runningTask && runningTask.id !== streamingTaskId) {
     setStreamingTaskId(runningTask.id)
     setCodeStreamUrl(`/agent/task/${runningTask.id}/stream-code`)
   }
-}, [session?.tasks])
-    // If no running task, clear the stream URL
-    if (!runningTask && codeStreamUrl) {
-      setCodeStreamUrl(null)
-      setStreamingTaskId(null)
-    }
-  }, [session?.tasks, streamingTaskId, codeStreamUrl])
+  if (!runningTask && codeStreamUrl) {
+    setCodeStreamUrl(null)
+    setStreamingTaskId(null)
+  }
+}, [session?.tasks, streamingTaskId, codeStreamUrl])
 
   function handleDrag(deltaY) {
     setSplitPercent(prev => {
