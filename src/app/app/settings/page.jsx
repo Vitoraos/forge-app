@@ -122,9 +122,9 @@ function OpenRouterSection() {
           <circle cx="5" cy="5" r="4" stroke="#555" strokeWidth="1.2" />
           <path d="M5 4.5V7M5 3.5V3" stroke="#555" strokeWidth="1.2" strokeLinecap="round" />
         </svg>
-        <p className="text-xs text-muted">
+        <span className="text-xs text-muted">
           {'Get your key at '}
-          
+          <a
             href="https://openrouter.ai/keys"
             target="_blank"
             rel="noopener noreferrer"
@@ -132,7 +132,7 @@ function OpenRouterSection() {
           >
             {'openrouter.ai/keys'}
           </a>
-        </p>
+        </span>
       </div>
     </div>
   )
@@ -158,7 +158,7 @@ function GitHubPatSection() {
           {' permissions on the target repo.'}
         </p>
       </div>
-      
+      <a
         href="https://github.com/settings/personal-access-tokens/new"
         target="_blank"
         rel="noopener noreferrer"
