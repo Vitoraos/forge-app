@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import AppShell from '@/components/ui/app/AppShell'   // ✅ fixed path
+import AppShell from '@/components/ui/app/AppShell'
 
 export default async function AppLayout({ children }) {
   const supabase = await createClient()
