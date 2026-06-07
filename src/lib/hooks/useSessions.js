@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { apiFetch } from '@/lib/api'
 
 export function useSessions(repoId = null) {
   const [sessions, setSessions] = useState([])
   const [loading, setLoading] = useState(true)
+  const intervalRef = useRef(null)
 
   const fetchSessions = useCallback(async () => {
     try {
@@ -23,6 +24,13 @@ export function useSessions(repoId = null) {
 
   useEffect(() => {
     fetchSessions()
+
+    // Poll every 5 seconds to keep sidebar fresh
+    intervalRef.current = setInterval(fetchSessions, 5000)
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current)
+    }
   }, [fetchSessions])
 
   return { sessions, loading, refetch: fetchSessions }
