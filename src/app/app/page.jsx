@@ -8,7 +8,6 @@ import RepoSelector from '@/components/ui/app/RepoSelector'
 import ModelSelector from '@/components/ui/app/ModelSelector'
 import TaskInput from '@/components/ui/app/TaskInput'
 import RepoSelector from '@/components/app/RepoSelector'
-import ModelSelector from '@/components/app/ModelSelector'
 import TaskInput from '@/components/app/TaskInput'
 
 
