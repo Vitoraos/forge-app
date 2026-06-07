@@ -7,7 +7,7 @@ import StreamingOutput from '@/components/session/StreamingOutput'
 import PlanReview from '@/components/session/PlanReview'
 import SubtaskRail from '@/components/session/SubtaskRail'
 import StatusDot from '@/components/ui/StatusDot'
-import ModelSelector from '@/components/app/ModelSelector'
+import ModelSelector from '@/components/ui/app/ModelSelector'
 import CodeReview from '@/components/session/CodeReview'
 import { apiFetch } from '@/lib/supabase/api'
 
