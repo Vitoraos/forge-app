@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRepos } from '@/lib/hooks/useRepos'
-import { apiFetch } from '@/lib/api'
+import { apiFetch } from '@/lib/supabase/api'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 

@@ -3,9 +3,14 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { apiFetch } from '@/lib/supabase/api'
+
 import RepoSelector from '@/components/ui/app/RepoSelector'
 import ModelSelector from '@/components/ui/app/ModelSelector'
 import TaskInput from '@/components/ui/app/TaskInput'
+import RepoSelector from '@/components/app/RepoSelector'
+import ModelSelector from '@/components/app/ModelSelector'
+import TaskInput from '@/components/app/TaskInput'
+
 
 const DEFAULT_PLANNER = 'anthropic/claude-3.5-sonnet'
 const DEFAULT_CODER = 'poolside/laguna-m.1:free'

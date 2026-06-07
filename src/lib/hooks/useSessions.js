@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { apiFetch } from '@/lib/api'
+import { apiFetch } from '@/lib/supabase/api'
 
 export function useSessions(repoId = null) {
   const [sessions, setSessions] = useState([])

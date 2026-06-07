@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { apiFetch } from '@/lib/api'
+import { apiFetch } from '@/lib/supabase/api'
 import { createClient } from '@/lib/supabase/client'
 import { useUser } from '@/lib/hooks/useUser'
 import Button from '@/components/ui/Button'

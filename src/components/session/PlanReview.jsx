@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { apiFetch } from '@/lib/api'
+import { apiFetch } from '@/lib/supabase/api'
 import Button from '@/components/ui/Button'
 
 export default function PlanReview({ session, onApproved }) {
