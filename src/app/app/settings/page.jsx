@@ -134,7 +134,7 @@ function OpenRouterSection() {
         </svg>
         <p className="text-xs text-muted">
           Get your key at{' '}
-          
+          <a
             href="https://openrouter.ai/keys"
             target="_blank"
             rel="noopener noreferrer"
@@ -170,7 +170,7 @@ function GitHubPatSection() {
         </p>
       </div>
 
-      
+      <a
         href="https://github.com/settings/personal-access-tokens/new"
         target="_blank"
         rel="noopener noreferrer"
