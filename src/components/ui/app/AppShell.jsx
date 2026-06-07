@@ -8,13 +8,10 @@ export default function AppShell({ children }) {
 
   return (
     <div className="min-h-screen bg-base flex">
-      {/* Sidebar */}
       <Sidebar
         open={sidebarOpen}
         onToggle={() => setSidebarOpen(prev => !prev)}
       />
-
-      {/* Main */}
       <main
         className={`
           flex-1 min-h-screen transition-all duration-150
