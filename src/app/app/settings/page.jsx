@@ -8,7 +8,6 @@ import { useUser } from '@/lib/hooks/useUser'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 
-// ─── SECTION WRAPPER ──────────────────────────────────────────────
 function Section({ title, description, children }) {
   return (
     <div className="flex flex-col gap-4 py-6 border-b border-border last:border-0">
@@ -23,10 +22,8 @@ function Section({ title, description, children }) {
   )
 }
 
-// ─── SAVE STATUS ──────────────────────────────────────────────────
 function SaveStatus({ status }) {
   if (!status) return null
-
   return (
     <span className={`
       text-xs font-mono animate-fade-in
@@ -41,7 +38,6 @@ function SaveStatus({ status }) {
   )
 }
 
-// ─── OPENROUTER SECTION ───────────────────────────────────────────
 function OpenRouterSection() {
   const [apiKey, setApiKey] = useState('')
   const [hasKey, setHasKey] = useState(false)
@@ -51,9 +47,7 @@ function OpenRouterSection() {
 
   useEffect(() => {
     apiFetch('/settings')
-      .then(data => {
-        setHasKey(data.settings.has_api_key)
-      })
+      .then(data => setHasKey(data.settings.has_api_key))
       .catch(console.error)
       .finally(() => setLoading(false))
   }, [])
@@ -61,7 +55,6 @@ function OpenRouterSection() {
   async function handleSave() {
     if (!apiKey.trim()) return
     setSaveStatus('saving')
-
     try {
       await apiFetch('/settings', {
         method: 'POST',
@@ -89,9 +82,7 @@ function OpenRouterSection() {
             <circle cx="6" cy="6" r="5" stroke="#06b6d4" strokeWidth="1.2" />
             <path d="M3.5 6L5.5 8L8.5 4" stroke="#06b6d4" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          <span className="text-xs text-success font-mono">
-            API key saved and encrypted
-          </span>
+          <span className="text-xs text-success font-mono">API key saved and encrypted</span>
         </div>
       )}
 
@@ -104,7 +95,6 @@ function OpenRouterSection() {
           onChange={e => setApiKey(e.target.value)}
           hint="Your key is encrypted before storage and never exposed"
         />
-
         <div className="flex items-center justify-between">
           <button
             onClick={() => setRevealing(p => !p)}
@@ -133,14 +123,14 @@ function OpenRouterSection() {
           <path d="M5 4.5V7M5 3.5V3" stroke="#555" strokeWidth="1.2" strokeLinecap="round" />
         </svg>
         <p className="text-xs text-muted">
-          Get your key at{' '}
-          <a
+          {'Get your key at '}
+          
             href="https://openrouter.ai/keys"
             target="_blank"
             rel="noopener noreferrer"
             className="text-accent hover:underline"
           >
-            openrouter.ai/keys
+            {'openrouter.ai/keys'}
           </a>
         </p>
       </div>
@@ -148,7 +138,6 @@ function OpenRouterSection() {
   )
 }
 
-// ─── GITHUB PAT SECTION ───────────────────────────────────────────
 function GitHubPatSection() {
   return (
     <div className="flex flex-col gap-3">
@@ -162,29 +151,26 @@ function GitHubPatSection() {
           and stored against that repo. You do not need to enter it here.
         </p>
         <p className="text-xs text-muted leading-relaxed">
-          Your PAT needs{' '}
-          <span className="font-mono text-secondary">contents: read & write</span>
-          {' '}and{' '}
-          <span className="font-mono text-secondary">metadata: read</span>
-          {' '}permissions on the target repo.
+          {'Your PAT needs '}
+          <span className="font-mono text-secondary">{'contents: read & write'}</span>
+          {' and '}
+          <span className="font-mono text-secondary">{'metadata: read'}</span>
+          {' permissions on the target repo.'}
         </p>
       </div>
-
-      <a
+      
         href="https://github.com/settings/personal-access-tokens/new"
         target="_blank"
         rel="noopener noreferrer"
         className="inline-flex items-center gap-2 text-xs text-accent hover:underline"
       >
-        Create a fine-grained token on GitHub →
+        {'Create a fine-grained token on GitHub →'}
       </a>
     </div>
   )
 }
 
-// ─── ACCOUNT SECTION ──────────────────────────────────────────────
 function AccountSection({ user }) {
-  const router = useRouter()
   const [changingPassword, setChangingPassword] = useState(false)
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -211,7 +197,6 @@ function AccountSection({ user }) {
     try {
       const supabase = createClient()
 
-      // Re-authenticate with current password first
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email: user.email,
         password: currentPassword,
@@ -223,9 +208,7 @@ function AccountSection({ user }) {
         return
       }
 
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword,
-      })
+      const { error } = await supabase.auth.updateUser({ password: newPassword })
 
       if (error) {
         setPwError(error.message)
@@ -247,19 +230,15 @@ function AccountSection({ user }) {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Email display */}
       <div className="flex flex-col gap-1.5">
         <label className="text-xs font-medium text-muted uppercase tracking-wider">
           Email
         </label>
         <div className="px-3 py-2.5 bg-surface border border-border rounded">
-          <span className="text-sm text-secondary font-mono">
-            {user?.email}
-          </span>
+          <span className="text-sm text-secondary font-mono">{user?.email}</span>
         </div>
       </div>
 
-      {/* Change password */}
       {!changingPassword ? (
         <Button
           variant="ghost"
@@ -348,8 +327,7 @@ function AccountSection({ user }) {
   )
 }
 
-// ─── DANGER ZONE ──────────────────────────────────────────────────
-function DangerZone({ user }) {
+function DangerZone() {
   const router = useRouter()
   const [confirming, setConfirming] = useState(false)
   const [confirmText, setConfirmText] = useState('')
@@ -360,16 +338,10 @@ function DangerZone({ user }) {
     if (confirmText !== 'delete my account') return
     setDeleting(true)
     setError(null)
-
     try {
-      // Sign out first
       const supabase = createClient()
       await supabase.auth.signOut()
-
-      // Redirect to home
-      // Note: actual account deletion requires a Supabase admin call
-      // For now sign out and redirect — full deletion can be added later
-      router.push('/?deleted=true')
+      router.push('/')
     } catch (err) {
       setError(err.message)
       setDeleting(false)
@@ -402,9 +374,9 @@ function DangerZone({ user }) {
             This will permanently delete your account
           </p>
           <p className="text-xs text-muted">
-            Type{' '}
+            {'Type '}
             <span className="font-mono text-secondary">delete my account</span>
-            {' '}to confirm
+            {' to confirm'}
           </p>
 
           <Input
@@ -445,7 +417,6 @@ function DangerZone({ user }) {
   )
 }
 
-// ─── PAGE ─────────────────────────────────────────────────────────
 export default function SettingsPage() {
   const { user, loading } = useUser()
 
@@ -459,7 +430,6 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-base flex flex-col">
-      {/* Header */}
       <div className="px-6 py-5 border-b border-border shrink-0">
         <h1 className="text-base font-semibold text-secondary">Settings</h1>
         <p className="text-xs text-muted mt-0.5">
@@ -467,7 +437,6 @@ export default function SettingsPage() {
         </p>
       </div>
 
-      {/* Content */}
       <div className="flex-1 px-6 max-w-xl w-full">
         <Section
           title="OpenRouter"
@@ -490,10 +459,8 @@ export default function SettingsPage() {
           <AccountSection user={user} />
         </Section>
 
-        <Section
-          title="Danger Zone"
-        >
-          <DangerZone user={user} />
+        <Section title="Danger Zone">
+          <DangerZone />
         </Section>
       </div>
     </div>
