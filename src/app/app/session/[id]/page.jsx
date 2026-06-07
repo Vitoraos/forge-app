@@ -9,6 +9,7 @@ import SubtaskRail from '@/components/session/SubtaskRail'
 import StatusDot from '@/components/ui/StatusDot'
 import ModelSelector from '@/components/app/ModelSelector'
 import CodeReview from '@/components/session/CodeReview'
+import { apiFetch } from '@/lib/supabase/api'
 
 // ─── DRAG HANDLE ──────────────────────────────────────────────────
 function DragHandle({ onDrag }) {
