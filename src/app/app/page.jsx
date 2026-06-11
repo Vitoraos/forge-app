@@ -8,8 +8,8 @@ import RepoSelector from '@/components/ui/app/RepoSelector'
 import ModelSelector from '@/components/ui/app/ModelSelector'
 import TaskInput from '@/components/ui/app/TaskInput'
 
-const DEFAULT_PLANNER = 'anthropic/claude-3.5-sonnet'
-const DEFAULT_CODER = 'poolside/laguna-m.1:free'
+const DEFAULT_PLANNER = 'openai/gpt-oss-20b:free'
+const DEFAULT_CODER = 'openai/gpt-oss-20b:free'
 
 export default function NewTaskPage() {
   const router = useRouter()
@@ -21,7 +21,6 @@ export default function NewTaskPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
 
-  // Poll indexing status while repo is indexing
   useEffect(() => {
     if (!selectedRepo || selectedRepo.index_status === 'indexed') return
     if (selectedRepo.index_status === 'failed') return
@@ -67,8 +66,8 @@ export default function NewTaskPage() {
         body: JSON.stringify({
           repo_id: selectedRepo.id,
           task: task.trim(),
-          planner_model: plannerModel,
-          coder_model: coderModel,
+          plannerModel,  // ← camelCase, was planner_model
+          coderModel,    // ← camelCase, was coder_model
         }),
       })
 
@@ -81,7 +80,6 @@ export default function NewTaskPage() {
 
   return (
     <div className="min-h-screen bg-base flex flex-col">
-      {/* Header */}
       <div className="px-6 py-5 border-b border-border">
         <h1 className="text-base font-semibold text-secondary">New Task</h1>
         <p className="text-xs text-muted mt-0.5">
@@ -89,7 +87,6 @@ export default function NewTaskPage() {
         </p>
       </div>
 
-      {/* Content */}
       <div className="flex-1 px-6 py-6 flex flex-col gap-6 max-w-2xl w-full">
         <RepoSelector
           value={selectedRepo}
